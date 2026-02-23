@@ -294,7 +294,10 @@ plot(test_data2$SalePrice, preds2,
 abline(0, 1, col = "red", lwd = 2, lty = 2)
 legend("topleft", legend = "Perfect Prediction", col = "red", lty = 2, lwd = 2)
 ```
-The scatter plot shows that predicted prices track actual prices reasonably well for mid-range homes (roughly $100,000–$300,000), where most points cluster near the 45° perfect-prediction line. However, the model struggles at the extremes — for very cheap homes (below $100,000) it tends to over-predict, and for expensive homes (above $400,000) it systematically under-predicts. This is a known limitation of kNN regression: predictions are averages of neighbors, so extreme values get pulled toward the center of the training distribution. The model essentially cannot predict prices much higher than the average of its k nearest neighbors.
+The scatter plot shows that predicted prices track actual prices reasonably well for mid-range homes (roughly $100,000–$300,000), where most points cluster near the 45° perfect-prediction line. However, the model struggles at the extremes — for very cheap homes (below $100,000) it tends to over-predict, and for expensive homes (above $400,000) it systematically under-predicts. This is a known limitation of kNN regression: predictions are averages of neighbors, so extreme values get pulled toward the center of the training distribution. The model essentially cannot predict prices much higher than the average of its k nearest neighbors.  
+
+
+
 ---
 
 ## 1.3 Comparison with `caret::train()` (10 points)
