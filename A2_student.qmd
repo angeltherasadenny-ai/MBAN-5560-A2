@@ -1,0 +1,359 @@
+---
+title: "Assignment 2 - kNN for Regression and Classification"
+subtitle: "MBAN 5560 - Due February 22, 2026 (Sunday) 11:59pm"
+author: "Angel Denny"
+date: today
+format: 
+  html:
+    embed-resources: true
+    toc: true
+    toc-depth: 2jhjjjj
+    
+    theme: cosmo
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+```{r}
+
+```
+
+In this assignment, you will apply k-Nearest Neighbors (kNN) to two real-world prediction tasks. Each section is self-contained: you will preprocess the data, tune the hyperparameter k using bootstrap validation, evaluate your model on a held-out test set, and interpret your results.
+
+**Important Notes:**
+
+- You can team up with **two classmates** for this assignment (maximum 3 students per team). Submit one assignment per team.
+- Use R and Quarto for your analysis. Submit the rendered HTML file along with the QMD source file.
+- Make sure your code runs without errors and produces the expected outputs.
+- **DO NOT use `train()` for hyperparameter tuning** — implement your own grid search with bootstrap validation.
+- Provide interpretations and explanations for your results, not just code outputs.
+- Using LLM assistance is allowed, but you must disclose which tool you used and how it helped.
+
+> ⚠️ **Runtime Note:** The nested tuning loops in Sections 1.2 and 2.2 can take **10–15 minutes** to complete depending on your computer. We recommend rendering this document overnight or while you take a break. The `cache=TRUE` option in the code chunks means subsequent renders will be fast — only the first run is slow.
+
+**Datasets (included in the Assignment folder):**
+
+- [Ames Housing Dataset](https://www.kaggle.com/datasets/prevek18/ames-housing-dataset?resource=download) — `AmesHousing.csv`
+- [Telco Customer Churn](https://www.kaggle.com/datasets/blastchar/telco-customer-churn) — `WA_Fn-UseC_-Telco-Customer-Churn.csv`
+
+```{r setup}
+library(tidyverse)
+library(caret)
+library(knitr)
+library(kableExtra)
+```
+
+---
+
+# Section 1: Predicting House Sale Prices — kNN Regression (50 points) {#sec-regression}
+
+**Objective:** Your goal is to predict the **sale price** (`SalePrice`) of houses in Ames, Iowa using kNN regression.
+
+## 1.1 Data Preprocessing (10 points)
+
+Load the Ames Housing dataset and prepare it for kNN regression.
+
+The Ames dataset contains 82 variables. Because kNN is a distance-based algorithm, it does not perform well with a large number of features (curse of dimensionality). For this assignment, **use only the following variables:**
+
+| Variable | Description |
+|---|---|
+| `SalePrice` | Sale price in dollars (**target**) |
+| `Gr.Liv.Area` | Above grade living area (sq ft) |
+| `Total.Bsmt.SF` | Total basement area (sq ft) |
+| `Garage.Area` | Size of garage (sq ft) |
+| `Year.Built` | Original construction date |
+| `Overall.Qual` | Overall material and finish quality (1–10) |
+| `Overall.Cond` | Overall condition rating (1–10) |
+
+**Your tasks:**
+
+1. Load the data and subset to the variables listed above
+2. Handle any missing values (e.g., median imputation for numeric columns)
+3. **Standardize all numeric predictors** (not the target `SalePrice`) using `preProcess()` from `caret` or `scale()`
+
+```{r preprocess-ames}
+# YOUR CODE HERE
+# 1. Load the data
+# ames <- read.csv("AmesHousing.csv")
+# 2. Subset to the specified variables
+# 3. Handle missing values
+# 4. Standardize numeric predictors (NOT SalePrice)
+
+```
+
+#### **Question 1 (5 points):** How many observations are in the dataset? Provide a brief summary of the target variable `SalePrice` (range, mean, distribution shape).
+
+**Your Answer:**
+
+#### **Question 2 (5 points):** Why is standardization necessary before applying kNN? What would happen if you did not standardize?
+
+**Your Answer:**
+
+---
+
+## 1.2 kNN Regression: Tuning and Evaluation (30 points)
+
+In this section, tuning and evaluation happen together in **each** iteration. For every train-test split, you find the optimal *k* on that split's training set, then evaluate with that *k* on that split's test set. This ensures the reported performance honestly reflects the full process.
+
+**Requirements:**
+
+- Use `knnreg()` from the `caret` package (**not** `train()`)
+- Run **20 iterations** (each with a different random train-test split)
+- Within each iteration, perform a grid search over *k* (from 1 to 30) using bootstrap validation on the training set (e.g., 20 bootstrap samples per *k*)
+- Use the optimal *k* from that iteration to predict on that iteration's test set
+
+**Loop structure:**
+
+```
+for i in 1:20:
+    split data into train (80%) and test (20%)
+
+    for each k in grid:
+        for j in 1:20:
+            bootstrap sample from train → boot_train
+            OOB observations → boot_val
+            fit knnreg on boot_train, predict on boot_val
+            compute RMSPE
+        mean RMSPE for this k (across 20 bootstraps)
+
+    optimal_k[i] ← k with lowest mean RMSPE for this split
+    fit knnreg with optimal_k[i] on train, predict on test
+    test_RMSPE[i] ← RMSPE on test set
+
+Report: distribution of optimal_k values and distribution of test_RMSPE values
+        (mean and SD)
+```
+
+```{r knn-regression-tuning, cache=TRUE}
+# YOUR CODE HERE
+# 1. Run 20 iterations, each with a fresh 80/20 split
+# 2. Within each iteration: grid search with bootstrap on training set → find optimal k
+# 3. Evaluate with that optimal k on that iteration's test set
+# 4. Store optimal_k and test_RMSPE for each iteration
+# 5. Report mean RMSPE and SD
+
+```
+
+#### **Question 3 (5 points):** Plot the mean RMSPE against *k*. What is the optimal *k*? What is the corresponding RMSPE? Comment on the shape of the curve.
+
+**Your Answer:**
+
+#### **Question 4 (5 points):** Report the mean test RMSPE and standard deviation. Create a histogram showing the distribution of the 20 test RMSPEs. Comment on the variability.
+
+**Your Answer:**
+
+#### **Question 5 (5 points):** Create a scatter plot of actual vs. predicted sale prices for one representative test split. Does the model perform equally well across the full price range? Where does it struggle?
+
+**Your Answer:**
+
+---
+
+## 1.3 Comparison with `caret::train()` (10 points)
+
+Now use the automated `train()` function from `caret` with 5-fold cross-validation to find the optimal *k* over the same grid.
+
+```{r caret-comparison-regression, cache=TRUE}
+# YOUR CODE HERE: Use train() with method = "knn" and 5-fold CV
+# Compare the optimal k and RMSPE with your manual implementation
+
+```
+
+#### **Question 6 (5 points):** How does the optimal *k* from `train()` compare with your manual bootstrap result? Explain why they might differ (consider: validation strategy, stratification, seed handling).
+
+**Your Answer:**
+
+#### **Question 7 (5 points):** Explain the bias-variance tradeoff for kNN: what happens when *k* = 1 vs. a very large *k*?
+
+**Your Answer:**
+
+---
+
+# Section 2: Predicting Customer Churn — kNN Classification (40 points) {#sec-classification}
+
+**Objective:** Your goal is to predict whether a telecom customer will **churn** (`Churn`: Yes/No) using kNN classification.
+
+## 2.1 Data Preprocessing (10 points)
+
+Load the Telco Customer Churn dataset and prepare it for kNN classification.
+
+**Use only the following variables:**
+
+| Variable | Description |
+|---|---|
+| `Churn` | Whether the customer churned: Yes/No (**target**) |
+| `tenure` | Number of months the customer has stayed |
+| `MonthlyCharges` | Monthly charge amount |
+| `TotalCharges` | Total charges to date |
+| `Contract` | Contract type (Month-to-month, One year, Two year) |
+| `InternetService` | Type of internet service (DSL, Fiber optic, No) |
+| `PaymentMethod` | Payment method |
+
+**Your tasks:**
+
+1. Load the data and remove `customerID`
+2. Convert `TotalCharges` to numeric and handle resulting NAs
+3. Subset to the variables listed above
+4. Convert `Churn` to a factor
+5. **Standardize all numeric predictors** (`tenure`, `MonthlyCharges`, `TotalCharges`)
+
+```{r preprocess-telco}
+# YOUR CODE HERE
+# 1. Load the data
+# churn_data <- read.csv("WA_Fn-UseC_-Telco-Customer-Churn.csv")
+# 2. Remove customerID
+# 3. Convert TotalCharges to numeric, handle NAs
+# 4. Subset to specified variables
+# 5. Convert Churn to factor
+# 6. Standardize numeric predictors
+
+```
+
+#### **Question 1 (5 points):** How many observations are in the final dataset? What is the class distribution of `Churn`? Is the dataset balanced or imbalanced?
+
+**Your Answer:**
+
+#### **Question 2 (5 points):** Why is standardization important for kNN even when you have a mix of numeric and categorical variables?
+
+**Your Answer:**
+
+---
+
+## 2.2 kNN Classification: Tuning and Evaluation (22 points)
+
+As with regression, tuning and evaluation happen together in **each** iteration. For every stratified train-test split, you find the optimal *k* on that split's training set, then evaluate with that *k* on that split's test set.
+
+**Requirements:**
+
+- Use `knn3()` from the `caret` package (**not** `train()`)
+- Use `predict(..., type = "class")` to get predicted class labels (this uses the default 0.5 threshold)
+- Run **20 iterations** (each with a different random stratified train-test split)
+- Within each iteration, perform a grid search over *k* (from 1 to 30, odd values) using bootstrap validation on the training set (e.g., 20 bootstrap samples per *k*)
+- Use the optimal *k* from that iteration to predict on that iteration's test set
+- Compute: **Accuracy, Precision, Recall, and F1-score**
+
+**Loop structure:**
+
+```
+for i in 1:20:
+    stratified split data into train (80%) and test (20%)
+
+    for each k in grid:
+        for j in 1:20:
+            bootstrap sample from train → boot_train
+            OOB observations → boot_val
+            fit knn3 on boot_train, predict on boot_val
+            compute accuracy
+        mean accuracy for this k (across 20 bootstraps)
+
+    optimal_k[i] ← k with highest mean accuracy for this split
+    fit knn3 with optimal_k[i] on train, predict on test
+    store: accuracy[i], precision[i], recall[i], f1[i]
+
+Report: distribution of optimal_k values and distribution of all metrics
+        (mean and SD)
+```
+
+```{r knn-classification-tuning, cache=TRUE}
+# YOUR CODE HERE
+# 1. Run 20 iterations, each with a fresh stratified 80/20 split
+# 2. Within each iteration: grid search with bootstrap on training set → find optimal k
+# 3. Evaluate with that optimal k on that iteration's test set
+# 4. Store optimal_k and all metrics for each iteration
+# 5. Report mean and SD for all metrics
+
+```
+
+#### **Question 3 (5 points):** Plot the mean accuracy against *k*. What is the optimal *k*? What is the corresponding accuracy?
+
+**Your Answer:**
+
+#### **Question 4 (5 points):** Create a summary table showing the mean and SD for all four metrics (Accuracy, Precision, Recall, F1). Which metric has the most variability? Why?
+
+**Your Answer:**
+
+#### **Question 5 (5 points):** Display and interpret the confusion matrix from one representative test split. What types of errors does the model make more often? Which type of error is more costly in the business context of customer churn?
+
+**Your Answer:**
+
+```{r confusion-matrix}
+# YOUR CODE HERE: Display confusion matrix from one representative split
+
+```
+
+---
+
+## 2.3 Interpretation (8 points)
+
+#### **Question 6 (4 points):** Why might accuracy alone be a misleading metric for this dataset? Which metric (precision, recall, or F1) would you prioritize if you were advising the telecom company, and why?
+
+**Your Answer:**
+
+#### **Question 7 (4 points):** What are two concrete steps you would take to improve the churn prediction model? Consider feature engineering, distance metrics, class imbalance handling, or alternative algorithms.
+
+**Your Answer:**
+
+---
+
+## Bonus: Threshold Tuning (10 bonus points)
+
+In Section 2.2, you used `predict(..., type = "class")`, which assigns "Yes" when P(Churn) > 0.5 and "No" otherwise. But the 0.5 threshold is not necessarily optimal — especially with imbalanced data where the model tends to favor the majority class.
+
+`knn3()` can also return **predicted probabilities** using `type = "prob"`. You can then apply your own threshold to convert probabilities into class labels:
+
+```r
+probs <- predict(model, test_data, type = "prob")
+# Custom threshold: predict "Yes" if P(Yes) > threshold
+pred_custom <- ifelse(probs[, "Yes"] > threshold, "Yes", "No")
+pred_custom <- factor(pred_custom, levels = c("No", "Yes"))
+```
+
+#### **Bonus Question (10 points):** Using your optimal *k* and one representative train-test split, predict probabilities with `type = "prob"`. Try at least 5 different thresholds (e.g., 0.2, 0.3, 0.4, 0.5, 0.6). For each threshold, compute accuracy, precision, recall, and F1-score. Create a table or plot showing how these metrics change with the threshold. Which threshold would you recommend for the churn problem, and why?
+
+```{r bonus-threshold, cache=TRUE}
+# YOUR CODE HERE (optional)
+# 1. Use knn3 with type = "prob" to get predicted probabilities
+# 2. Try multiple thresholds
+# 3. Compute metrics for each threshold
+# 4. Create a table or plot
+
+```
+
+**Your Answer:**
+
+---
+
+# Wrap-Up: Comparing the Two Tasks (10 points)
+
+#### **Question 1 (5 points):** Compare your regression and classification results side by side. Create a figure with two panels: (a) RMSPE vs. *k* for regression, and (b) accuracy vs. *k* for classification. How do the optimal *k* values compare? Why might they differ?
+
+```{r comparison-plot}
+# YOUR CODE HERE: Create side-by-side comparison plot
+
+```
+
+**Your Answer:**
+
+#### **Question 2 (5 points):** Reflecting on both tasks, explain the bias-variance tradeoff as it applies to the choice of *k* in kNN. How did you observe this tradeoff in your results? What are the main limitations of kNN that you encountered?
+
+**Your Answer:**
+
+---
+
+# Submission Checklist
+
+Before submitting, ensure:
+
+- [ ] All code chunks run without errors
+- [ ] All questions answered with explanations (not just code output)
+- [ ] Plots are properly labeled with titles and axis labels
+- [ ] Numeric predictors standardized before kNN
+- [ ] Bootstrap validation implemented manually (NOT using `train()` for tuning)
+- [ ] 20 test iterations completed with mean and SD reported
+- [ ] Team members listed in author field
+- [ ] LLM usage disclosed (if applicable)
+- [ ] Both `.qmd` and `.html` files submitted
+
+---
+
+**Good luck with your analysis!**
